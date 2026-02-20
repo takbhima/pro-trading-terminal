@@ -89,7 +89,10 @@ socket.onopen = function () {
 
 socket.onmessage = function (event) {
     const data = JSON.parse(event.data);
-    document.getElementById("price").innerText = data.price;
+    const priceEl = document.getElementById("livePrice");
+    if (priceEl) {
+        priceEl.innerText = data.price;
+    }
 };
 
 socket.onerror = function (error) {
