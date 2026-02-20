@@ -2,12 +2,12 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 
-from data_fetcher import get_data
-from indicators import apply_indicators
-from strategy import generate_signal
-from ai_score import calculate_probability
-from risk import calculate_position_size
-from backtest import backtest
+from backend.data_fetcher import get_data
+from backend.indicators import apply_indicators
+from backend.strategy import generate_signal
+from backend.ai_score import calculate_probability
+from backend.risk import calculate_position_size
+from backend.backtest import backtest
 
 app = FastAPI()
 
