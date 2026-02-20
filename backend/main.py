@@ -1,13 +1,15 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import asyncio, os
 
 from backend.data_fetcher import get_data
-from backend.indicators import apply_indicators
-from backend.strategy import generate_signal
-from backend.ai_score import calculate_probability
-from backend.risk import calculate_position_size
-from backend.backtest import backtest
+from backend.indicators   import apply_indicators
+from backend.strategy     import generate_signal
+from backend.ai_score     import calculate_probability
+from backend.risk         import calculate_position_size
+from backend.backtest     import backtest
 
 app = FastAPI()
 
@@ -19,50 +21,76 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-symbols = ["^NSEBANK", "^NSEI"]
-
+SYMBOLS = ["^NSEBANK", "^NSEI"]
 signal_history = []
 
-@app.get("/")
-def root():
-    return {"status": "running"}
+# ── API routes ──────────────────────────────────────────────────────────────
 
-@app.get("/signals")
+@app.get("/api/status")
+def status():
+    return {"status": "running", "signals": len(signal_history)}
+
+@app.get("/api/signals")
 def get_signals():
     return signal_history
 
-@app.get("/risk")
+@app.get("/api/risk")
 def risk(capital: float, risk_percent: float, entry: float, stoploss: float):
     qty = calculate_position_size(capital, risk_percent, entry, stoploss)
     return {"quantity": qty}
 
-@app.get("/backtest/{symbol}")
+@app.get("/api/backtest/{symbol}")
 def run_backtest(symbol: str):
-    df = get_data(symbol, "5m")
-    df = apply_indicators(df)
-    return backtest(df)
+    try:
+        df = apply_indicators(get_data(symbol, "15m", "30d"))
+        return backtest(df)
+    except Exception as e:
+        return {"error": str(e)}
+
+# ── WebSocket ───────────────────────────────────────────────────────────────
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
-    while True:
-        for symbol in symbols:
-            df_5m = apply_indicators(get_data(symbol, "5m"))
-            df_15m = apply_indicators(get_data(symbol, "15m"))
+    try:
+        while True:
+            for symbol in SYMBOLS:
+                try:
+                    df_5m  = apply_indicators(get_data(symbol, "5m"))
+                    df_15m = apply_indicators(get_data(symbol, "15m"))
+                    signal = generate_signal(df_5m, df_15m)
+                    if signal:
+                        probability = calculate_probability(df_5m)
+                        data = {
+                            "symbol"     : symbol,
+                            "type"       : signal["type"],
+                            "signal"     : signal["type"],
+                            "price"      : signal["price"],
+                            "sl"         : signal["sl"],
+                            "tp"         : signal["tp"],
+                            "atr"        : signal["atr"],
+                            "rsi"        : signal["rsi"],
+                            "probability": probability,
+                        }
+                        signal_history.insert(0, data)
+                        if len(signal_history) > 200:
+                            signal_history.pop()
+                        await ws.send_json(data)
+                except Exception as e:
+                    print(f"[ERROR] {symbol}: {e}")
+            await asyncio.sleep(60)
+    except WebSocketDisconnect:
+        print("[WS] Client disconnected")
 
-            signal = generate_signal(df_5m, df_15m)
+# ── Serve frontend ──────────────────────────────────────────────────────────
 
-            if signal:
-                probability = calculate_probability(df_5m)
+frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
+app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
-                data = {
-                    "symbol": symbol,
-                    "signal": signal,
-                    "price": float(df_5m["Close"].iloc[-1]),
-                    "probability": probability
-                }
+@app.get("/")
+def serve_index():
+    return FileResponse(os.path.join(frontend_dir, "index.html"))
 
-                signal_history.append(data)
-                await ws.send_json(data)
-
-        await asyncio.sleep(60)
+@app.get("/{full_path:path}")
+def catch_all(full_path: str):
+    return FileResponse(os.path.join(frontend_dir, "index.html"))
