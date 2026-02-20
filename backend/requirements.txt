@@ -1,8 +1,7 @@
-fastapi
-uvicorn
-pandas
-numpy
-yfinance
-ta
-scikit-learn
-python-multipart
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+websockets==12.0
+yfinance==0.2.40
+pandas==2.2.2
+pandas-ta==0.3.14b
+python-multipart==0.0.9
