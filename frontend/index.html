@@ -1,106 +1,474 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pro Trading Terminal</title>
-
 <script src="https://s3.tradingview.com/tv.js"></script>
-
 <style>
-body {
-    margin:0;
-    background:#0b1220;
-    color:white;
-    font-family:Arial;
-}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-.grid {
-    display:grid;
-    grid-template-columns:3fr 1fr;
-    grid-template-rows:70vh 30vh;
-    gap:5px;
-    height:100vh;
-}
+  :root {
+    --bg:       #0b1220;
+    --panel:    #111827;
+    --border:   #1f2d45;
+    --green:    #00d084;
+    --red:      #ff4d4d;
+    --yellow:   #f0b429;
+    --blue:     #3b82f6;
+    --text:     #e2e8f0;
+    --subtext:  #94a3b8;
+  }
 
-.panel {
-    background:#111827;
-    border-radius:6px;
-    padding:10px;
-    overflow:auto;
-}
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+  }
 
-#chart { grid-column:1; grid-row:1 / span 2; }
-#signals { grid-column:2; grid-row:1; }
-#risk { grid-column:2; grid-row:2; }
-button { padding:5px 10px; margin-top:5px; }
+  /* ── Top bar ── */
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    height: 48px;
+  }
+  #topbar .logo { font-size: 16px; font-weight: 700; color: var(--blue); letter-spacing: 1px; }
+  #topbar .status-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--subtext); display: inline-block; margin-right: 6px;
+  }
+  #topbar .status-dot.live { background: var(--green); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  #topbar .status-label { font-size: 12px; color: var(--subtext); }
+
+  /* Symbol tabs */
+  #symbol-tabs { display: flex; gap: 6px; }
+  .sym-tab {
+    padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border);
+    background: transparent; color: var(--subtext); cursor: pointer; font-size: 13px;
+  }
+  .sym-tab.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+  /* ── Main grid ── */
+  #main {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    grid-template-rows: calc(100vh - 48px);
+    gap: 0;
+  }
+
+  /* ── Chart ── */
+  #chart-wrap {
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+  }
+  #chart { width: 100%; height: 100%; }
+
+  /* ── Right sidebar ── */
+  #sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .panel {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px;
+    overflow: auto;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--subtext);
+    margin-bottom: 12px;
+  }
+
+  /* ── Signals panel ── */
+  #signals-panel { flex: 1; }
+
+  .signal-card {
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-left: 3px solid transparent;
+    background: #1a2535;
+    transition: opacity .3s;
+  }
+  .signal-card.BUY  { border-color: var(--green); }
+  .signal-card.SELL { border-color: var(--red);   }
+
+  .signal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .signal-type {
+    font-weight: 700;
+    font-size: 13px;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .BUY  .signal-type { background: rgba(0,208,132,.15); color: var(--green); }
+  .SELL .signal-type { background: rgba(255,77,77,.15);  color: var(--red);   }
+
+  .signal-symbol { font-size: 13px; font-weight: 600; }
+  .signal-time   { font-size: 10px; color: var(--subtext); }
+
+  .signal-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-top: 4px;
+    color: var(--subtext);
+  }
+  .signal-row span:last-child { color: var(--text); font-weight: 600; }
+
+  .prob-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .prob-fill {
+    height: 100%;
+    background: var(--blue);
+    border-radius: 2px;
+    transition: width .4s;
+  }
+
+  #no-signal {
+    text-align: center;
+    color: var(--subtext);
+    font-size: 13px;
+    padding: 30px 0;
+  }
+  #no-signal .icon { font-size: 28px; margin-bottom: 8px; }
+
+  /* ── Risk Calculator ── */
+  #risk-panel { flex-shrink: 0; }
+
+  .risk-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .input-group label {
+    display: block;
+    font-size: 10px;
+    color: var(--subtext);
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .input-group input {
+    width: 100%;
+    padding: 6px 8px;
+    background: #1a2535;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 12px;
+  }
+  .input-group input:focus { outline: none; border-color: var(--blue); }
+
+  #calc-btn {
+    width: 100%;
+    padding: 8px;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    transition: background .2s;
+  }
+  #calc-btn:hover { background: #2563eb; }
+
+  #risk-result {
+    background: #1a2535;
+    border-radius: 4px;
+    padding: 10px;
+    display: none;
+  }
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 3px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-row:last-child { border: none; }
+  .result-row .val { font-weight: 700; color: var(--yellow); }
+
+  /* ── Connection banner ── */
+  #conn-banner {
+    position: fixed;
+    bottom: 12px; left: 50%; transform: translateX(-50%);
+    background: #1f2d45;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--subtext);
+    display: none;
+    z-index: 999;
+    border: 1px solid var(--border);
+  }
 </style>
 </head>
-
 <body>
 
-<div class="grid">
-    <div id="chart" class="panel"></div>
+<!-- Top Bar -->
+<div id="topbar">
+  <div class="logo">⚡ PRO TERMINAL</div>
 
-    <div id="signals" class="panel">
-        <h3>Live Signals</h3>
-        <div id="signalBox">Waiting...</div>
-    </div>
+  <div id="symbol-tabs">
+    <button class="sym-tab active" onclick="switchSymbol('NSE:NIFTY',this)">NIFTY</button>
+    <button class="sym-tab" onclick="switchSymbol('NSE:BANKNIFTY',this)">BANKNIFTY</button>
+    <button class="sym-tab" onclick="switchSymbol('NSE:RELIANCE',this)">RELIANCE</button>
+    <button class="sym-tab" onclick="switchSymbol('NSE:TCS',this)">TCS</button>
+  </div>
 
-    <div id="risk" class="panel">
-        <h3>Risk Calculator</h3>
-
-        Capital: <input id="capital" type="number" value="100000"><br>
-        Risk %: <input id="riskPercent" type="number" value="1"><br>
-        Entry: <input id="entry" type="number"><br>
-        Stoploss: <input id="sl" type="number"><br>
-
-        <button onclick="calculateRisk()">Calculate</button>
-
-        <div id="riskResult"></div>
-    </div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="status-dot" id="dot"></span>
+    <span class="status-label" id="status-label">Connecting…</span>
+  </div>
 </div>
 
+<!-- Main layout -->
+<div id="main">
+  <!-- Chart -->
+  <div id="chart-wrap">
+    <div id="chart"></div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+
+    <!-- Live Signals -->
+    <div class="panel" id="signals-panel">
+      <div class="panel-title">🔔 Live Signals</div>
+      <div id="signal-list">
+        <div id="no-signal">
+          <div class="icon">📡</div>
+          Scanning market…<br>
+          <small>Signals appear when conditions are met</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Calculator -->
+    <div class="panel" id="risk-panel">
+      <div class="panel-title">🧮 Risk Calculator</div>
+      <div class="risk-grid">
+        <div class="input-group">
+          <label>Capital (₹)</label>
+          <input id="capital" type="number" value="100000">
+        </div>
+        <div class="input-group">
+          <label>Risk %</label>
+          <input id="riskPct" type="number" value="1" step="0.1">
+        </div>
+        <div class="input-group">
+          <label>Entry Price</label>
+          <input id="entry" type="number" placeholder="e.g. 22400">
+        </div>
+        <div class="input-group">
+          <label>Stop Loss</label>
+          <input id="sl" type="number" placeholder="e.g. 22300">
+        </div>
+      </div>
+      <button id="calc-btn" onclick="calculateRisk()">Calculate Position Size</button>
+      <div id="risk-result"></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="conn-banner" id="conn-banner">⚠️ Reconnecting…</div>
+
 <script>
-new TradingView.widget({
-    container_id: "chart",
-    width: "100%",
-    height: "100%",
-    symbol: "NSE:NIFTY",
-    interval: "5",
-    timezone: "Asia/Kolkata",
-    theme: "dark"
-});
+// ── TradingView Chart ────────────────────────────────────────────────────
+let tvWidget = null;
 
-/* WebSocket */
-const protocol = location.protocol === "https:" ? "wss://" : "ws://";
-const socket = new WebSocket(protocol + location.host + "/ws");
+function buildChart(symbol) {
+  if (tvWidget) {
+    try { tvWidget.remove(); } catch(e) {}
+  }
+  tvWidget = new TradingView.widget({
+    container_id : "chart",
+    autosize     : true,
+    symbol       : symbol,
+    interval     : "15",
+    timezone     : "Asia/Kolkata",
+    theme        : "dark",
+    style        : "1",
+    locale       : "en",
+    toolbar_bg   : "#111827",
+    hide_side_toolbar : false,
+    allow_symbol_change: true,
+    studies      : ["EMA@tv-basicstudies", "RSI@tv-basicstudies"],
+  });
+}
 
-socket.onmessage = function(event) {
-    const data = JSON.parse(event.data);
+function switchSymbol(sym, btn) {
+  document.querySelectorAll('.sym-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildChart(sym);
+}
 
-    if(data.symbol){
-        document.getElementById("signalBox").innerHTML =
-            `<b>${data.symbol}</b><br>
-             Signal: ${data.signal}<br>
-             Price: ${data.price}<br>
-             AI Probability: ${data.probability}%`;
-    }
-};
+buildChart("NSE:NIFTY");
 
-/* Risk Calculator */
-async function calculateRisk(){
-    const capital = document.getElementById("capital").value;
-    const riskPercent = document.getElementById("riskPercent").value;
-    const entry = document.getElementById("entry").value;
-    const sl = document.getElementById("sl").value;
+// ── WebSocket ────────────────────────────────────────────────────────────
+const MAX_SIGNALS = 20;
+let signals = [];
+let reconnectTimer = null;
 
-    const res = await fetch(`/risk?capital=${capital}&risk_percent=${riskPercent}&entry=${entry}&stoploss=${sl}`);
-    const data = await res.json();
+function setStatus(live, text) {
+  document.getElementById('dot').className = 'status-dot' + (live ? ' live' : '');
+  document.getElementById('status-label').textContent = text;
+}
 
-    document.getElementById("riskResult").innerText =
-        "Suggested Quantity: " + data.quantity;
+function connectWS() {
+  const proto = location.protocol === "https:" ? "wss://" : "ws://";
+  const ws = new WebSocket(proto + location.host + "/ws");
+
+  ws.onopen = () => {
+    setStatus(true, "Live");
+    document.getElementById('conn-banner').style.display = 'none';
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.symbol) addSignal(data);
+    } catch(e) { console.error("WS parse error", e); }
+  };
+
+  ws.onclose = () => {
+    setStatus(false, "Reconnecting…");
+    document.getElementById('conn-banner').style.display = 'block';
+    reconnectTimer = setTimeout(connectWS, 5000);
+  };
+
+  ws.onerror = () => ws.close();
+}
+
+connectWS();
+
+// Poll /api/signals on load to show any stored signals immediately
+fetch("/api/signals")
+  .then(r => r.json())
+  .then(data => { if (Array.isArray(data)) data.slice(0,10).reverse().forEach(addSignal); })
+  .catch(() => {});
+
+// ── Render signals ───────────────────────────────────────────────────────
+function addSignal(data) {
+  // Normalise field names (strategy.py uses 'type', main.py uses 'signal')
+  const type   = data.type   || data.signal || "?";
+  const symbol = data.symbol || data.ticker || "—";
+  const price  = data.price  || "—";
+  const sl     = data.sl     || "—";
+  const tp     = data.tp     || "—";
+  const prob   = data.probability || 75;
+  const time   = data.timestamp
+    ? new Date(data.timestamp).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'})
+    : new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+
+  signals.unshift({ type, symbol, price, sl, tp, prob, time });
+  if (signals.length > MAX_SIGNALS) signals.pop();
+  renderSignals();
+
+  // Browser notification
+  if (Notification.permission === "granted") {
+    new Notification(`${type} Signal — ${symbol}`, {
+      body: `Price: ${price}  SL: ${sl}  TP: ${tp}`,
+      icon: "https://cdn-icons-png.flaticon.com/512/2920/2920286.png"
+    });
+  }
+}
+
+function renderSignals() {
+  const list = document.getElementById('signal-list');
+  if (signals.length === 0) {
+    list.innerHTML = `<div id="no-signal"><div class="icon">📡</div>Scanning market…<br><small>Signals appear when conditions are met</small></div>`;
+    return;
+  }
+  list.innerHTML = signals.map(s => `
+    <div class="signal-card ${s.type}">
+      <div class="signal-header">
+        <span class="signal-symbol">${s.symbol}</span>
+        <span class="signal-type">${s.type}</span>
+      </div>
+      <div class="signal-row"><span>Price</span><span>₹${s.price}</span></div>
+      <div class="signal-row"><span>Stop Loss</span><span style="color:var(--red)">₹${s.sl}</span></div>
+      <div class="signal-row"><span>Target</span><span style="color:var(--green)">₹${s.tp}</span></div>
+      <div class="prob-bar"><div class="prob-fill" style="width:${s.prob}%"></div></div>
+      <div style="font-size:10px;color:var(--subtext);margin-top:4px;text-align:right">${s.time}</div>
+    </div>
+  `).join('');
+}
+
+// Request notification permission on first interaction
+document.body.addEventListener('click', () => {
+  if (Notification.permission === "default") Notification.requestPermission();
+}, { once: true });
+
+// ── Risk Calculator ──────────────────────────────────────────────────────
+async function calculateRisk() {
+  const capital    = parseFloat(document.getElementById('capital').value) || 0;
+  const riskPct    = parseFloat(document.getElementById('riskPct').value)  || 1;
+  const entry      = parseFloat(document.getElementById('entry').value)    || 0;
+  const sl         = parseFloat(document.getElementById('sl').value)       || 0;
+
+  if (!entry || !sl || entry === sl) {
+    alert("Please enter valid Entry and Stop Loss values.");
+    return;
+  }
+
+  const riskAmt    = capital * (riskPct / 100);
+  const perUnit    = Math.abs(entry - sl);
+  const qty        = Math.max(1, Math.floor(riskAmt / perUnit));
+  const totalRisk  = qty * perUnit;
+  const totalVal   = qty * entry;
+
+  // Also try the API
+  try {
+    const res = await fetch(`/api/risk?capital=${capital}&risk_percent=${riskPct}&entry=${entry}&stoploss=${sl}`);
+    const d   = await res.json();
+    if (d.quantity) showRiskResult(d.quantity, riskAmt, totalVal, perUnit);
+    else            showRiskResult(qty, riskAmt, totalVal, perUnit);
+  } catch {
+    showRiskResult(qty, riskAmt, totalVal, perUnit);
+  }
+}
+
+function showRiskResult(qty, riskAmt, totalVal, perUnit) {
+  const el = document.getElementById('risk-result');
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="result-row"><span>Suggested Qty</span><span class="val">${qty} units</span></div>
+    <div class="result-row"><span>Risk Amount</span><span class="val">₹${riskAmt.toFixed(0)}</span></div>
+    <div class="result-row"><span>Total Value</span><span class="val">₹${(qty * parseFloat(document.getElementById('entry').value)).toFixed(0)}</span></div>
+    <div class="result-row"><span>Risk/Unit</span><span class="val">₹${perUnit.toFixed(2)}</span></div>
+  `;
 }
 </script>
-
 </body>
 </html>
