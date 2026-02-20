@@ -1,0 +1,50 @@
+[
+  {
+    "sym": "^BSESN",
+    "name": "SENSEX"
+  },
+  {
+    "sym": "^NSEBANK",
+    "name": "Bank Nifty"
+  },
+  {
+    "sym": "^NSEI",
+    "name": "Nifty 50"
+  },
+  {
+    "sym": "RELIANCE.NS",
+    "name": "Reliance"
+  },
+  {
+    "sym": "TCS.NS",
+    "name": "TCS"
+  },
+  {
+    "sym": "INFY.NS",
+    "name": "Infosys"
+  },
+  {
+    "sym": "HDFCBANK.NS",
+    "name": "HDFC Bank"
+  },
+  {
+    "sym": "AAPL",
+    "name": "Apple"
+  },
+  {
+    "sym": "MSFT",
+    "name": "Microsoft"
+  },
+  {
+    "sym": "NVDA",
+    "name": "Nvidia"
+  },
+  {
+    "sym": "BTC-USD",
+    "name": "Bitcoin"
+  },
+  {
+    "sym": "CANBK.NS",
+    "name": "Canara Bank"
+  }
+]
