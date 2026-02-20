@@ -1,14 +1,13 @@
-from fastapi import FastAPI, WebSocket, Request
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-import random
 import asyncio
 
-from strategy_engine import save_signal, get_signals
+from data_fetcher import get_data
+from indicators import apply_indicators
+from strategy import generate_signal
+from ai_score import calculate_probability
 from risk import calculate_position_size
-from backtester import backtest
-from ai_model import ai_score
+from backtest import backtest
 
 app = FastAPI()
 
@@ -20,57 +19,50 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Webhook
-@app.post("/webhook")
-async def webhook(request: Request):
-    data = await request.body()
-    signal_text = data.decode()
+symbols = ["^NSEBANK", "^NSEI"]
 
-    parts = signal_text.split("|")
-    action = parts[0]
-    symbol = parts[1]
-    price = float(parts[2])
+signal_history = []
 
-    signal_data = {
-        "action": action,
-        "symbol": symbol,
-        "price": price
-    }
+@app.get("/")
+def root():
+    return {"status": "running"}
 
-    save_signal(signal_data)
-
-    return {"status": "stored"}
-
-# Signal history
 @app.get("/signals")
-def signals():
-    return get_signals()
+def get_signals():
+    return signal_history
 
-# Risk calculator
 @app.get("/risk")
 def risk(capital: float, risk_percent: float, entry: float, stoploss: float):
     qty = calculate_position_size(capital, risk_percent, entry, stoploss)
-    return {"recommended_quantity": qty}
+    return {"quantity": qty}
 
-# Backtest
-@app.get("/backtest")
-def run_backtest():
-    return backtest()
+@app.get("/backtest/{symbol}")
+def run_backtest(symbol: str):
+    df = get_data(symbol, "5m")
+    df = apply_indicators(df)
+    return backtest(df)
 
-# AI Score
-@app.get("/ai-score")
-def ai():
-    return {"probability_percent": ai_score()}
-
-# Demo WebSocket
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
+async def websocket_endpoint(ws: WebSocket):
+    await ws.accept()
     while True:
-        await websocket.send_json({"price": random.randint(40000, 45000)})
-        await asyncio.sleep(2)
+        for symbol in symbols:
+            df_5m = apply_indicators(get_data(symbol, "5m"))
+            df_15m = apply_indicators(get_data(symbol, "15m"))
 
-# Static files
-BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
-app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+            signal = generate_signal(df_5m, df_15m)
+
+            if signal:
+                probability = calculate_probability(df_5m)
+
+                data = {
+                    "symbol": symbol,
+                    "signal": signal,
+                    "price": float(df_5m["Close"].iloc[-1]),
+                    "probability": probability
+                }
+
+                signal_history.append(data)
+                await ws.send_json(data)
+
+        await asyncio.sleep(60)
