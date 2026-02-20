@@ -1,19 +1,36 @@
-
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>Pro Trading Terminal</title>
 <script src="https://s3.tradingview.com/tv.js"></script>
+
 <style>
-body { margin:0; background:#0b1220; color:white; font-family:Arial; }
-.grid { display:grid; grid-template-columns:3fr 1fr; grid-template-rows:70vh 30vh; gap:5px; height:100vh; }
-.panel { background:#111827; border-radius:6px; padding:5px; overflow:auto; }
+body {
+    margin:0;
+    background:#0b1220;
+    color:white;
+    font-family:Arial;
+}
+.grid {
+    display:grid;
+    grid-template-columns:3fr 1fr;
+    grid-template-rows:70vh 30vh;
+    gap:5px;
+    height:100vh;
+}
+.panel {
+    background:#111827;
+    border-radius:6px;
+    padding:5px;
+    overflow:auto;
+}
 #chart { grid-column:1; grid-row:1 / span 2; }
 #optionChain { grid-column:2; grid-row:1; }
 #strategy { grid-column:2; grid-row:2; }
 </style>
 </head>
+
 <body>
 
 <div class="grid">
@@ -26,6 +43,7 @@ body { margin:0; background:#0b1220; color:white; font-family:Arial; }
 </div>
 
 <script>
+/* -------- TradingView Chart -------- */
 new TradingView.widget({
     container_id: "chart",
     width: "100%",
@@ -34,21 +52,44 @@ new TradingView.widget({
     interval: "5",
     timezone: "Asia/Kolkata",
     theme: "dark",
-    studies: ["RSI@tv-basicstudies","MACD@tv-basicstudies","Volume@tv-basicstudies"]
+    style: "1",
+    locale: "en",
+    toolbar_bg: "#111827",
+    enable_publishing: false,
+    allow_symbol_change: true,
+    hide_side_toolbar: false,
+    studies: [
+        "RSI@tv-basicstudies",
+        "MACD@tv-basicstudies",
+        "Volume@tv-basicstudies"
+    ]
 });
 
+/* -------- Option Chain -------- */
 async function loadOptionChain() {
-    const res = await fetch("/option-chain/CANBK");
-    const data = await res.json();
-    document.getElementById("optionChain").innerHTML =
-        "<pre>" + JSON.stringify(data.records?.data?.slice(0,5), null, 2) + "</pre>";
+    try {
+        const res = await fetch("/option-chain/CANBK");
+        const data = await res.json();
+
+        document.getElementById("optionChain").innerHTML =
+            "<pre>" + JSON.stringify(data.records?.data?.slice(0,5), null, 2) + "</pre>";
+    } catch (err) {
+        document.getElementById("optionChain").innerText = "Option chain load failed";
+    }
 }
 loadOptionChain();
 
-const ws = new WebSocket(`ws://${location.host}/ws`);
+/* -------- WebSocket (Render HTTPS Safe) -------- */
+const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+const ws = new WebSocket(`${wsProtocol}://${location.host}/ws`);
+
 ws.onmessage = function(event) {
     const data = JSON.parse(event.data);
     document.getElementById("livePrice").innerText = "₹ " + data.price;
+};
+
+ws.onerror = function() {
+    document.getElementById("livePrice").innerText = "WebSocket error";
 };
 </script>
 
