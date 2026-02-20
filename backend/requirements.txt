@@ -1,7 +1,8 @@
 fastapi
-uvicorn[standard]
-requests
+uvicorn
 pandas
 numpy
 yfinance
+ta
 scikit-learn
+python-multipart
