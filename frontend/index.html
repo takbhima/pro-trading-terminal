@@ -80,16 +80,24 @@ async function loadOptionChain() {
 loadOptionChain();
 
 /* -------- WebSocket (Render HTTPS Safe) -------- */
-const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
-const ws = new WebSocket(`${wsProtocol}://${location.host}/ws`);
+const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+const socket = new WebSocket(protocol + window.location.host + "/ws");
 
-ws.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-    document.getElementById("livePrice").innerText = "₹ " + data.price;
+socket.onopen = function () {
+    console.log("WebSocket connected");
 };
 
-ws.onerror = function() {
-    document.getElementById("livePrice").innerText = "WebSocket error";
+socket.onmessage = function (event) {
+    const data = JSON.parse(event.data);
+    document.getElementById("price").innerText = data.price;
+};
+
+socket.onerror = function (error) {
+    console.log("WebSocket error:", error);
+};
+
+socket.onclose = function () {
+    console.log("WebSocket closed");
 };
 </script>
 
