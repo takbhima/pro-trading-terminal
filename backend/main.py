@@ -41,5 +41,15 @@ async def websocket_endpoint(ws: WebSocket):
         await asyncio.sleep(1)
 
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Serve static frontend folder
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "frontend")), name="static")
+
+# Serve index.html at root
+@app.get("/")
+def serve_index():
+    return FileResponse(os.path.join(BASE_DIR, "frontend", "index.html"))
