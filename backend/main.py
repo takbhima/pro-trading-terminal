@@ -39,3 +39,7 @@ async def websocket_endpoint(ws: WebSocket):
         price += random.uniform(-1,1)
         await ws.send_json({"price": round(price,2)})
         await asyncio.sleep(1)
+
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
