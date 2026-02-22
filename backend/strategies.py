@@ -12,18 +12,23 @@ from backend.indicators import ema, rsi, atr, supertrend, crossover, crossunder
 # ─────────────────────────────────────────────────────────────────────
 def _build_signal(df: pd.DataFrame, i: int, typ: str,
                   a_series: pd.Series, r_series: pd.Series,
-                  ts_fn) -> dict:
+                  ts_fn, strategy_key: str = '') -> dict:
     close = float(df['Close'].iloc[i])
     av    = float(a_series.iloc[i])
     rv    = float(r_series.iloc[i])
+    # Confidence: RSI distance from neutral 50
+    dist       = max(0.0, (rv - 50.0) if typ == 'BUY' else (50.0 - rv))
+    confidence = round(min(95.0, 50.0 + dist * 1.8), 1)
     return {
-        'time' : ts_fn(df.index[i]),
-        'type' : typ,
-        'price': round(close, 4),
-        'sl'   : round(close - av, 4)       if typ == 'BUY' else round(close + av, 4),
-        'tp'   : round(close + av * 2.0, 4) if typ == 'BUY' else round(close - av * 2.0, 4),
-        'rsi'  : round(rv, 2),
-        'atr'  : round(av, 4),
+        'time'       : ts_fn(df.index[i]),
+        'type'       : typ,
+        'price'      : round(close, 4),
+        'sl'         : round(close - av, 4)       if typ == 'BUY' else round(close + av, 4),
+        'tp'         : round(close + av * 2.0, 4) if typ == 'BUY' else round(close - av * 2.0, 4),
+        'rsi'        : round(rv, 2),
+        'atr'        : round(av, 4),
+        'confidence' : confidence,
+        'strategy'   : strategy_key,
     }
 
 
@@ -42,9 +47,9 @@ def strategy_pro_mtf(df: pd.DataFrame, ts_fn) -> list:
     for i in range(1, len(df)):
         price = float(c.iloc[i])
         if cu.iloc[i] and r.iloc[i] > 50 and price > e200.iloc[i] and st.iloc[i] < 0:
-            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn))
+            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn, 'pro_mtf'))
         elif cd.iloc[i] and r.iloc[i] < 50 and price < e200.iloc[i] and st.iloc[i] > 0:
-            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn))
+            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn, 'pro_mtf'))
     return out
 
 
@@ -63,9 +68,9 @@ def strategy_vwap_ema(df: pd.DataFrame, ts_fn) -> list:
     out = []
     for i in range(1, len(df)):
         if cv_up.iloc[i] and e9.iloc[i] > e21.iloc[i] and r.iloc[i] > 50:
-            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn))
+            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn, 'vwap_ema'))
         elif cv_dn.iloc[i] and e9.iloc[i] < e21.iloc[i] and r.iloc[i] < 50:
-            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn))
+            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn, 'vwap_ema'))
     return out
 
 
@@ -88,9 +93,9 @@ def strategy_rsi_reversal(df: pd.DataFrame, ts_fn) -> list:
     for i in range(1, len(df)):
         price = float(c.iloc[i])
         if cross30_up.iloc[i] and price > e50.iloc[i]:
-            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn))
+            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn, 'rsi_reversal'))
         elif cross70_down.iloc[i] and price < e50.iloc[i]:
-            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn))
+            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn, 'rsi_reversal'))
     return out
 
 
@@ -112,9 +117,9 @@ def strategy_bollinger(df: pd.DataFrame, ts_fn) -> list:
         price  = float(c.iloc[i])
         vol_ok = float(df['Volume'].iloc[i]) > float(vm.iloc[i]) * 1.3
         if float(c_p.iloc[i]) <= float(up_p.iloc[i]) and price > float(upper.iloc[i]) and r.iloc[i] > 55 and vol_ok:
-            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn))
+            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn, 'bollinger'))
         elif float(c_p.iloc[i]) >= float(lo_p.iloc[i]) and price < float(lower.iloc[i]) and r.iloc[i] < 45 and vol_ok:
-            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn))
+            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn, 'bollinger'))
     return out
 
 
@@ -135,9 +140,9 @@ def strategy_macd(df: pd.DataFrame, ts_fn) -> list:
     for i in range(1, len(df)):
         price = float(c.iloc[i])
         if cu_m.iloc[i] and hist.iloc[i] > 0 and r.iloc[i] > 50:
-            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn))
+            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn, 'macd'))
         elif cd_m.iloc[i] and hist.iloc[i] < 0 and r.iloc[i] < 50:
-            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn))
+            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn, 'macd'))
     return out
 
 
@@ -154,9 +159,9 @@ def strategy_supertrend_scalper(df: pd.DataFrame, ts_fn) -> list:
     out = []
     for i in range(1, len(df)):
         if st_p.iloc[i] > 0 and st_f.iloc[i] < 0 and r.iloc[i] > 45:  # flipped bullish
-            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn))
+            out.append(_build_signal(df, i, 'BUY',  a, r, ts_fn, 'supertrend_scalper'))
         elif st_p.iloc[i] < 0 and st_f.iloc[i] > 0 and r.iloc[i] < 55:  # flipped bearish
-            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn))
+            out.append(_build_signal(df, i, 'SELL', a, r, ts_fn, 'supertrend_scalper'))
     return out
 
 

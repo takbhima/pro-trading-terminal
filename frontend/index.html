@@ -218,6 +218,59 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
 #conn-banner{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--card);padding:6px 16px;border-radius:20px;font-size:11px;color:var(--subtext);display:none;z-index:999;border:1px solid var(--border2)}
+
+/* ── ACTIVE TRADE PANEL ── */
+#trade-panel{display:none;border-radius:6px;padding:10px;margin-bottom:8px;position:relative}
+#trade-panel.BUY {background:rgba(0,230,118,.07);border:1px solid rgba(0,230,118,.25)}
+#trade-panel.SELL{background:rgba(255,61,87,.07); border:1px solid rgba(255,61,87,.25)}
+.trade-badge{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:10px;
+  margin-bottom:7px}
+.trade-badge.BUY {color:var(--green);background:rgba(0,230,118,.12);border:1px solid rgba(0,230,118,.3)}
+.trade-badge.SELL{color:var(--red);  background:rgba(255,61,87,.12); border:1px solid rgba(255,61,87,.3)}
+.trade-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;
+  animation:pulse 1.2s infinite}
+.trade-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:6px}
+.tc{background:rgba(0,0,0,.2);border-radius:3px;padding:4px 7px}
+.tc .lbl{font-size:8px;color:var(--subtext);text-transform:uppercase;letter-spacing:.5px}
+.tc .val{font-size:12px;font-weight:700;margin-top:1px}
+#trade-pnl-row{display:flex;justify-content:space-between;align-items:center;
+  padding:5px 8px;border-radius:4px;background:rgba(0,0,0,.25);margin-bottom:5px}
+#trade-pnl-lbl{font-size:9px;color:var(--subtext);text-transform:uppercase;letter-spacing:.5px}
+#trade-pnl-val{font-size:16px;font-weight:900;font-variant-numeric:tabular-nums}
+#trade-pnl-val.profit{color:var(--green)}
+#trade-pnl-val.loss  {color:var(--red)}
+#trade-elapsed{font-size:9px;color:var(--subtext);text-align:right;margin-bottom:5px}
+.progress-wrap{height:3px;background:var(--border);border-radius:2px;margin-bottom:6px;overflow:hidden}
+.progress-bar{height:100%;border-radius:2px;transition:width .5s linear}
+.progress-bar.BUY {background:var(--green)}
+.progress-bar.SELL{background:var(--red)}
+#trade-close-btn{width:100%;padding:5px;background:rgba(255,61,87,.12);color:var(--red);
+  border:1px solid rgba(255,61,87,.3);border-radius:4px;cursor:pointer;font-size:10px;
+  font-weight:700;transition:all .15s}
+#trade-close-btn:hover{background:rgba(255,61,87,.25)}
+
+/* ── EXIT BANNER ── */
+#exit-banner{display:none;border-radius:6px;padding:10px;margin-bottom:8px}
+#exit-banner.profit{background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.3)}
+#exit-banner.loss  {background:rgba(255,61,87,.08); border:1px solid rgba(255,61,87,.3)}
+.exit-title{font-size:13px;font-weight:900;letter-spacing:1px;margin-bottom:6px}
+.exit-title.profit{color:var(--green)}
+.exit-title.loss  {color:var(--red)}
+.exit-reason-badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:10px;
+  font-weight:700;letter-spacing:.5px;margin-bottom:7px}
+.exit-reason-badge.target{background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.exit-reason-badge.stop  {background:rgba(255,61,87,.15); color:var(--red);  border:1px solid rgba(255,61,87,.3)}
+.exit-reason-badge.time  {background:rgba(255,214,0,.12); color:var(--yellow);border:1px solid rgba(255,214,0,.25)}
+.exit-reason-badge.eod   {background:rgba(107,140,174,.12);color:var(--subtext);border:1px solid var(--border2)}
+.exit-reason-badge.manual{background:rgba(107,140,174,.12);color:var(--subtext);border:1px solid var(--border2)}
+.exit-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:5px}
+.ec{background:rgba(0,0,0,.2);border-radius:3px;padding:4px 7px}
+.ec .lbl{font-size:8px;color:var(--subtext);text-transform:uppercase;letter-spacing:.5px}
+.ec .val{font-size:12px;font-weight:700;margin-top:1px}
+#exit-dismiss{margin-top:5px;width:100%;padding:4px;background:transparent;
+  border:1px solid var(--border2);border-radius:4px;color:var(--subtext);cursor:pointer;font-size:10px}
+#exit-dismiss:hover{background:var(--border)}
 </style>
 </head>
 <body>
@@ -271,9 +324,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
   <!-- CHART -->
   <div id="chart-wrap">
-    <div id="chart-toolbar">
+    <div id="chart-toolbar" title="All times shown in IST (Asia/Kolkata)">
       <span id="ct-sym">—</span>
-      <span id="ct-px">—</span>
+      <span id="ct-px">—</span><span style="font-size:9px;color:var(--subtext);background:var(--border2);padding:1px 4px;border-radius:2px;margin-left:2px">IST</span>
       <div class="ema-leg">
         <div class="ema-li"><div class="ema-dot" style="background:#00e676"></div>EMA9</div>
         <div class="ema-li"><div class="ema-dot" style="background:#ff3d57"></div>EMA21</div>
@@ -300,6 +353,40 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div id="sig-panel">
         <div class="p-title">Latest Signal</div>
         <div id="hero-inner"></div>
+
+        <!-- ACTIVE TRADE PANEL -->
+        <div id="trade-panel">
+          <div id="trade-badge" class="trade-badge"></div>
+          <div id="trade-pnl-row">
+            <span id="trade-pnl-lbl">Live P&amp;L</span>
+            <span id="trade-pnl-val">—</span>
+          </div>
+          <div class="trade-grid">
+            <div class="tc"><div class="lbl">Entry</div><div class="val" id="td-entry">—</div></div>
+            <div class="tc"><div class="lbl">Current</div><div class="val" id="td-cur">—</div></div>
+            <div class="tc"><div class="lbl">Target</div><div class="val" style="color:var(--green)" id="td-tp">—</div></div>
+            <div class="tc"><div class="lbl">Stop Loss</div><div class="val" style="color:var(--red)" id="td-sl">—</div></div>
+            <div class="tc"><div class="lbl">Strategy</div><div class="val" id="td-strat">—</div></div>
+            <div class="tc"><div class="lbl">Confidence</div><div class="val" id="td-conf">—</div></div>
+          </div>
+          <div class="progress-wrap"><div class="progress-bar BUY" id="td-progress" style="width:0%"></div></div>
+          <div id="trade-elapsed">⏱ Elapsed: <span id="td-elapsed">0m</span> · Est: <span id="td-est">—</span></div>
+          <button id="trade-close-btn" onclick="manualCloseTrade()">✕ Close Trade Now</button>
+        </div>
+
+        <!-- EXIT BANNER -->
+        <div id="exit-banner">
+          <div class="exit-title" id="exit-title">—</div>
+          <div id="exit-reason-badge" class="exit-reason-badge"></div>
+          <div class="exit-grid">
+            <div class="ec"><div class="lbl">Entry</div><div class="val" id="ex-entry">—</div></div>
+            <div class="ec"><div class="lbl">Exit Price</div><div class="val" id="ex-exit">—</div></div>
+            <div class="ec"><div class="lbl">P&amp;L</div><div class="val" id="ex-pnl">—</div></div>
+            <div class="ec"><div class="lbl">Duration</div><div class="val" id="ex-dur">—</div></div>
+          </div>
+          <button id="exit-dismiss" onclick="dismissExit()">↩ Dismiss — Ready for next signal</button>
+        </div>
+
         <div id="no-signal"><div class="icon">📡</div>Select a symbol from the watchlist<br>or scan one above</div>
         <div class="p-title" style="margin-top:8px">Signal History</div>
         <div id="sig-hist"></div>
@@ -341,6 +428,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       </div>
     </div>
 
+
   </div><!-- /sidebar -->
 </div><!-- /main -->
 
@@ -367,6 +455,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 let curYahoo = '^BSESN', curLabel = 'SENSEX', curTF = '1d', curStrategy = 'pro_mtf';
 let watchlist = [], wlSignals = {}, wlFilter = '', sigHistory = [], strategies = [];
 let newsCache = null, predCache = {};
+let activeTrade = null, tradeTimer = null, lastLivePrice = null;
 
 // ═══════════════════════════════════════════════════════════
 //  INIT
@@ -498,8 +587,8 @@ function initChart() {
     grid:{vertLines:{color:'#0d1a2d'},horzLines:{color:'#0d1a2d'}},
     crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
     rightPriceScale:{borderColor:'#1a2d48'},
-    timeScale:{borderColor:'#1a2d48',timeVisible:true,secondsVisible:false,localization:{locale:'en-IN'}},
-    localization:{locale:'en-IN'},
+    timeScale:{borderColor:'#1a2d48',timeVisible:true,secondsVisible:false},
+
     width:el.offsetWidth, height:el.offsetHeight,
   });
   candleSeries = chart.addCandlestickSeries({upColor:'#00e676',downColor:'#ff3d57',borderUpColor:'#00e676',borderDownColor:'#ff3d57',wickUpColor:'#00e676',wickDownColor:'#ff3d57'});
@@ -507,6 +596,20 @@ function initChart() {
   ema21S  = chart.addLineSeries({color:'#ff3d57',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
   ema200S = chart.addLineSeries({color:'#2979ff',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
   new ResizeObserver(() => chart.resize(el.offsetWidth, el.offsetHeight)).observe(el);
+}
+
+// ── Timezone offset applied to unix timestamps so LWC shows LOCAL time ──────
+// Browser's getTimezoneOffset() returns minutes WEST of UTC (negative for IST)
+// Multiply by -60 to get seconds EAST of UTC (positive for IST = +19800)
+const TZ_OFFSET_S = new Date().getTimezoneOffset() * -60;
+
+function applyTZ(ts) {
+  // Only offset numeric (unix) timestamps — leave date strings alone
+  return (typeof ts === 'number') ? ts + TZ_OFFSET_S : ts;
+}
+
+function applyTZtoSeries(arr) {
+  return arr.map(item => ({...item, time: applyTZ(item.time)}));
 }
 
 async function loadChart(yahoo, label, tf, strategy) {
@@ -518,15 +621,15 @@ async function loadChart(yahoo, label, tf, strategy) {
     if (data.error) { document.getElementById('ct-sym').textContent = `${label} — ${data.error}`; return; }
     if (!data.candles?.length) { document.getElementById('ct-sym').textContent = `${label} — No data`; return; }
 
-    try { candleSeries.setData(data.candles); } catch(e) { console.error('candles',e); }
-    try { ema9S.setData(data.ema9); } catch(e) {}
-    try { ema21S.setData(data.ema21); } catch(e) {}
-    try { ema200S.setData(data.ema200); } catch(e) {}
+    try { candleSeries.setData(applyTZtoSeries(data.candles)); } catch(e) { console.error('candles',e); }
+    try { ema9S.setData(applyTZtoSeries(data.ema9)); } catch(e) {}
+    try { ema21S.setData(applyTZtoSeries(data.ema21)); } catch(e) {}
+    try { ema200S.setData(applyTZtoSeries(data.ema200)); } catch(e) {}
 
     if (data.signals?.length) {
       try {
         candleSeries.setMarkers(data.signals.filter(s=>s.time!=null).map(s => ({
-          time:s.time, position:s.type==='BUY'?'belowBar':'aboveBar',
+          time:applyTZ(s.time), position:s.type==='BUY'?'belowBar':'aboveBar',
           color:s.type==='BUY'?'#00e676':'#ff3d57',
           shape:s.type==='BUY'?'arrowUp':'arrowDown',
           text:s.type, size:2,
@@ -546,6 +649,7 @@ async function loadChart(yahoo, label, tf, strategy) {
       wlSignals[yahoo] = data.latest_signal.type;
       renderWL();
     }
+    if (data.active_trade) { setActiveTrade(data.active_trade); } else { clearActiveTrade(); }
     chart.timeScale().fitContent();
   } catch(e) {
     console.error('Chart error:', e);
@@ -562,9 +666,13 @@ async function doScan(yahoo, label, tf) {
   predCache[yahoo] = null;
   renderWL();
   // Tell WebSocket which symbol we're viewing for live ticks
-  if (wsConn && wsConn.readyState === WebSocket.OPEN) {
-    wsConn.send(JSON.stringify({type:'subscribe', symbol: yahoo}));
+  function sendSubscribe() {
+    if (wsConn && wsConn.readyState === WebSocket.OPEN) {
+      wsConn.send(JSON.stringify({type:'subscribe', symbol: yahoo, interval: curTF}));
+    }
   }
+  sendSubscribe();
+  setTimeout(sendSubscribe, 1000);
   // Reset tick display
   document.getElementById('tick-sym').textContent = label;
   document.getElementById('live-tick').style.display = 'flex';
@@ -574,15 +682,35 @@ async function doScan(yahoo, label, tf) {
 }
 
 function updateTick(d) {
+  // ── 1. Update toolbar price badge ───────────────────────────────────────
   document.getElementById('tick-sym').textContent   = d.symbol;
   document.getElementById('tick-price').textContent = fmt(d.price);
   const chgEl = document.getElementById('tick-chg');
   const up = d.change >= 0;
   chgEl.textContent = `${up?'▲':'▼'} ${Math.abs(d.change_pct).toFixed(2)}%`;
   chgEl.style.color = up ? 'var(--green)' : 'var(--red)';
-  // Also update chart price label
   document.getElementById('ct-px').textContent = fmt(d.price);
   document.getElementById('ct-px').style.color = up ? 'var(--green)' : 'var(--yellow)';
+
+  // ── 2. Update the live candle on the chart ───────────────────────────────
+  if (d.bar && candleSeries && d.symbol === curYahoo) {
+    try {
+      const bar = {
+        time : applyTZ(d.bar.time),
+        open : d.bar.open,
+        high : d.bar.high,
+        low  : d.bar.low,
+        close: d.bar.close,
+      };
+      candleSeries.update(bar);
+    } catch(e) {}
+  }
+  // ── 3. Live P&L update for active trade ──────────────────────────────────
+  if (d.symbol === curYahoo) {
+    lastLivePrice = d.price;
+    if (d.active_trade && !activeTrade) setActiveTrade(d.active_trade);
+    if (activeTrade && d.live_pnl != null) updateLivePnl(d.live_pnl, d.price);
+  }
 }
 
 function renderMktBadges(openMarkets) {
@@ -609,6 +737,9 @@ function setTF(tf, btn) {
   document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active'); curTF = tf;
   if (curYahoo) doScan(curYahoo, curLabel, tf);
+  // Update WS subscription with new interval
+  if (wsConn && wsConn.readyState === WebSocket.OPEN && curYahoo)
+    wsConn.send(JSON.stringify({type:'subscribe', symbol: curYahoo, interval: tf}));
 }
 
 document.getElementById('sym-input').addEventListener('keydown', e => { if(e.key==='Enter') scanSymbol(); });
@@ -665,6 +796,7 @@ function showHero(sig) {
   addSigHistory(sig);
   if (Notification.permission==='granted')
     new Notification(`${sig.type} — ${sig.symbol||curLabel}`, {body:`Entry:${sig.price}  SL:${sig.sl}  TP:${sig.tp}`});
+
 }
 
 function addSigHistory(sig) {
@@ -807,7 +939,7 @@ function connectWS() {
   wsConn = ws;
   ws.onopen = () => { setStatus(true,'Connected'); document.getElementById('conn-banner').style.display='none'; clearTimeout(reconnTimer);
     // Subscribe to current symbol immediately
-    if (curYahoo) ws.send(JSON.stringify({type:'subscribe', symbol: curYahoo}));
+    if (curYahoo) ws.send(JSON.stringify({type:'subscribe', symbol: curYahoo, interval: curTF}));
   };
   ws.onmessage = e => {
     try {
@@ -815,7 +947,7 @@ function connectWS() {
       if (d.type === 'status') {
         const open = d.open_markets || [];
         const any  = d.any_open || open.length > 0;
-        setStatus(any, any ? `Open: ${open.join(', ')}` : 'Markets Closed');
+        setStatus(any, any ? `Open: ${open.join(', ')}` : 'Markets closed · Crypto 24/7');
         renderMktBadges(open);
       } else if (d.type === 'tick') {
         updateTick(d);
@@ -823,9 +955,15 @@ function connectWS() {
         showHero(d);
         wlSignals[d.symbol] = d.type;
         renderWL();
-        // Desktop notification for new signal
         if (Notification.permission==='granted')
-          new Notification(`🔔 ${d.type} Signal — ${d.symbol}`, {body:`Entry: ${fmt(d.price)}  SL: ${fmt(d.sl)}  TP: ${fmt(d.tp)}`});
+          new Notification(`🔔 ${d.type} — ${d.symbol}`, {body:`Entry: ${fmt(d.price)}  SL: ${fmt(d.sl)}  TP: ${fmt(d.tp)}`});
+      } else if (d.type === 'exit') {
+        showExitBanner(d);
+        if (d.symbol === curYahoo) clearActiveTrade();
+        wlSignals[d.symbol] = 'NONE'; renderWL();
+        if (Notification.permission==='granted')
+          new Notification('Trade Closed — '+d.symbol,
+            {body: d.exit_reason+' PnL: '+(d.pnl>=0?'+':'')+d.pnl+' ('+d.pnl_pct+'%)'});
       }
     } catch(err) {}
   };
@@ -860,6 +998,161 @@ function fmt(p) {
   if (p==null) return '—';
   const n = Number(p);
   return n >= 1000 ? n.toLocaleString('en-IN',{maximumFractionDigits:2}) : n.toFixed(2);
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  ACTIVE TRADE MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+function setActiveTrade(trade) {
+  activeTrade = trade;
+  const panel = document.getElementById('trade-panel');
+  panel.style.display = 'block';
+  panel.className = trade.side;
+
+  // Badge
+  const badge = document.getElementById('trade-badge');
+  badge.className = 'trade-badge ' + trade.side;
+  badge.textContent = (trade.side === 'BUY' ? '▲ LONG' : '▼ SHORT') + ' ACTIVE';
+
+  // Cells
+  document.getElementById('td-entry').textContent  = fmt(trade.entry_price);
+  document.getElementById('td-tp').textContent     = fmt(trade.target_price);
+  document.getElementById('td-sl').textContent     = fmt(trade.stop_loss);
+  document.getElementById('td-conf').textContent   = trade.confidence + '%';
+  document.getElementById('td-strat').textContent  = trade.strategy || '—';
+
+  // Progress bar class
+  document.getElementById('td-progress').className = 'progress-bar ' + trade.side;
+
+  // Hide exit banner, hide no-signal
+  document.getElementById('exit-banner').style.display = 'none';
+  document.getElementById('no-signal').style.display   = 'none';
+
+  // Start elapsed timer
+  if (tradeTimer) clearInterval(tradeTimer);
+  tradeTimer = setInterval(() => tickTradeTimer(), 1000);
+  tickTradeTimer();
+}
+
+function tickTradeTimer() {
+  if (!activeTrade) return;
+  const entryMs  = new Date(activeTrade.entry_time).getTime();
+  const elapsed  = Math.max(0, Math.round((Date.now() - entryMs) / 60000));
+  const estMin   = activeTrade.expected_time_minutes;
+  const progress = Math.min(100, (elapsed / estMin) * 100);
+
+  document.getElementById('td-elapsed').textContent = elapsed + 'm';
+  document.getElementById('td-est').textContent     = Math.round(estMin) + 'm';
+  document.getElementById('td-progress').style.width = progress + '%';
+  // Turn progress bar yellow when near expiry (>80%)
+  if (progress > 80)
+    document.getElementById('td-progress').style.background = 'var(--yellow)';
+
+  // Update current price cell from last known price
+  if (lastLivePrice)
+    document.getElementById('td-cur').textContent = fmt(lastLivePrice);
+}
+
+function updateLivePnl(pnl, currentPrice) {
+  if (!activeTrade) return;
+  const el    = document.getElementById('trade-pnl-val');
+  const sign  = pnl >= 0 ? '+' : '';
+  el.textContent = sign + fmt(pnl);
+  el.className   = 'profit' ? (pnl >= 0 ? 'profit' : 'loss') : 'loss';
+  el.className   = pnl >= 0 ? 'profit' : 'loss';
+  if (lastLivePrice)
+    document.getElementById('td-cur').textContent = fmt(currentPrice);
+}
+
+function clearActiveTrade() {
+  activeTrade = null;
+  if (tradeTimer) { clearInterval(tradeTimer); tradeTimer = null; }
+  document.getElementById('trade-panel').style.display = 'none';
+}
+
+function showExitBanner(ev) {
+  const isProfit = ev.pnl >= 0;
+  const banner   = document.getElementById('exit-banner');
+  banner.style.display = 'block';
+  banner.className     = isProfit ? 'profit' : 'loss';
+
+  const title = document.getElementById('exit-title');
+  title.className   = 'exit-title ' + (isProfit ? 'profit' : 'loss');
+  title.textContent = isProfit ? '✅ Trade Profitable!' : '❌ Trade Closed at Loss';
+
+  // Reason badge
+  const rb    = document.getElementById('exit-reason-badge');
+  const rmap  = {'Target Hit':'target','Stop Hit':'stop','Time Exit':'time',
+                 'EOD Exit':'eod','Manual Close':'manual'};
+  rb.className   = 'exit-reason-badge ' + (rmap[ev.exit_reason] || 'manual');
+  rb.textContent = ev.exit_reason;
+
+  // Cells
+  document.getElementById('ex-entry').textContent = fmt(ev.entry_price);
+  document.getElementById('ex-exit').textContent  = fmt(ev.exit_price);
+  const sign = ev.pnl >= 0 ? '+' : '';
+  const pnlEl = document.getElementById('ex-pnl');
+  pnlEl.textContent  = sign + fmt(ev.pnl) + ' (' + sign + ev.pnl_pct + '%)';
+  pnlEl.style.color  = ev.pnl >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('ex-dur').textContent   = Math.round(ev.duration_minutes) + 'm';
+
+  // Hide trade panel, hide no-signal
+  document.getElementById('trade-panel').style.display  = 'none';
+  document.getElementById('no-signal').style.display    = 'none';
+
+  addExitToHistory(ev);
+}
+
+function dismissExit() {
+  document.getElementById('exit-banner').style.display = 'none';
+  // Show no-signal hint if no hero and no active trade
+  if (!activeTrade) {
+    const hero = document.getElementById('hero-inner');
+    if (hero.style.display === 'none' || !hero.style.display)
+      document.getElementById('no-signal').style.display = 'block';
+  }
+}
+
+function addExitToHistory(ev) {
+  const pnlSign = ev.pnl >= 0 ? '+' : '';
+  const card = document.createElement('div');
+  card.className = 'sig-card ' + ev.side;
+  card.innerHTML =
+    '<div class="sig-row"><b>' + ev.symbol + '</b><b style="color:' +
+    (ev.pnl >= 0 ? 'var(--green)' : 'var(--red)') + '">' +
+    ev.exit_reason + '</b></div>' +
+    '<div class="sig-row"><span>PnL</span><span class="v" style="color:' +
+    (ev.pnl >= 0 ? 'var(--green)' : 'var(--red') + '">' +
+    pnlSign + fmt(ev.pnl) + ' (' + pnlSign + ev.pnl_pct + '%)</span></div>' +
+    '<div class="sig-row"><span>Entry→Exit</span><span class="v">' +
+    fmt(ev.entry_price) + ' → ' + fmt(ev.exit_price) + '</span></div>' +
+    '<div style="font-size:9px;color:var(--dim);text-align:right;margin-top:2px">' +
+    Math.round(ev.duration_minutes) + 'm · ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) +
+    '</div>';
+  const hist = document.getElementById('sig-hist');
+  hist.insertBefore(card, hist.firstChild);
+}
+
+async function manualCloseTrade() {
+  if (!activeTrade || !curYahoo) return;
+  const btn = document.getElementById('trade-close-btn');
+  btn.textContent = '⏳ Closing…'; btn.disabled = true;
+  try {
+    const price = lastLivePrice || 0;
+    const res = await fetch('/api/trade/' + encodeURIComponent(curYahoo) + '?price=' + price,
+                            {method:'DELETE'});
+    const data = await res.json();
+    if (data.exit) {
+      showExitBanner(data.exit);
+      clearActiveTrade();
+    }
+  } catch(e) {
+    console.error('Close trade error:', e);
+  } finally {
+    btn.textContent = '✕ Close Trade Now'; btn.disabled = false;
+  }
 }
 
 // ── BOOT ───────────────────────────────────────────────────
